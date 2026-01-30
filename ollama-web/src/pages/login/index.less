@@ -1,0 +1,75 @@
+/* 登录页面样式 */
+.login-container {
+  /* 使用 login_bg.png 作为全屏背景图 */
+  background-image: url('../../assets/login_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* 全屏布局 */
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 添加半透明遮罩，增强文字可读性 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 0;
+  }
+}
+
+.login-form-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: 0 20px;
+}
+
+.login-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  .ant-card-head {
+    text-align: center;
+    border-bottom: none;
+    padding: 24px 24px 16px;
+  }
+  .ant-typography {
+    margin: 0;
+  }
+}
+
+.prefix-icon {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.forgot-password {
+  float: right;
+  color: #1890ff;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.login-button {
+  margin-top: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .login-form-wrapper {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+  .login-card {
+    border-radius: 4px;
+  }
+}

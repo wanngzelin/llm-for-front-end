@@ -1,0 +1,25 @@
+http:
+  host: 'localhost'
+  port: 9999
+  prefix: 'api'
+
+mysql:
+  host: 'localhost'
+  port: 3306
+  database: 'zero-cost-ai'
+  username: 'root'
+  password: '123456'
+  charset: 'utf8'
+
+mongodb:
+  db: 'mongodb://localhost:27017/lingmengcan'
+
+chromadb:
+  db: 'http://localhost:9000'
+
+files:
+  destination: 'upload-files'
+  aigc: 'aigc-files'
+
+stablediffusion:
+  apiUrl: 'http://localhost:7861'

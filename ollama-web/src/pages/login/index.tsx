@@ -1,0 +1,111 @@
+
+import React, { useState } from 'react';
+import { Card, Form, Input, Button, Checkbox, Typography } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import './index.less';
+import request from '@/utils/request';
+import apiConfig from '../../../config/apiConfig';
+import { history } from 'umi';
+
+const { Title } = Typography;
+
+/**
+ * 登录页面组件
+ * @description 使用 Ant Design 组件实现的登录页面，包含用户名和密码输入
+ * @returns {React.ReactElement} 登录页面组件
+ */
+const Login: React.FC = () => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * 处理登录表单提交
+   * @param {Object} values - 表单提交的值
+   * @param {string} values.username - 用户名
+   * @param {string} values.password - 密码
+   */
+  const handleSubmit = async (values: { username: string; password: string }) => {
+    setLoading(true);
+    try {
+      // 这里可以添加登录逻辑
+      console.log('登录信息:', values);
+      // 模拟登录请求
+      const { data, success } = await request.post(apiConfig.auth.login, values)
+      if(success){
+        history.replace('/')
+      }
+      // 登录成功后的处理
+    } catch (error) {
+      console.error('登录失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-form-wrapper">
+        <Card className="login-card" title={<Title level={2}>登录</Title>}>
+          <Form
+            form={form}
+            onFinish={handleSubmit}
+            layout="vertical"
+          >
+            <Form.Item
+              name="username"
+              label="用户名"
+              rules={[
+                { required: true, message: '请输入用户名' },
+                { whitespace: true, message: '用户名不能为空' }
+              ]}
+            >
+              <Input
+                prefix={<UserOutlined className="prefix-icon" />}
+                placeholder="请输入用户名"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label="密码"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { whitespace: true, message: '密码不能为空' }
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined className="prefix-icon" />}
+                placeholder="请输入密码"
+                size="large"
+                visibilityToggle
+              />
+            </Form.Item>
+
+            {/* <Form.Item>
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox>记住我</Checkbox>
+              </Form.Item>
+              <a href="#" className="forgot-password">忘记密码?</a>
+            </Form.Item> */}
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="login-button"
+                size="large"
+                loading={loading}
+                block
+              >
+                登录
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
