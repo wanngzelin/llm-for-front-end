@@ -6,6 +6,7 @@ import { UserService } from '../user/user.service';
 import { ValidateUser } from './auth.dto';
 import { User } from '../user/user.entity';
 import { STATUS } from '@/constants/constant.enum';
+import { ResultData } from '@/common/model/response.model';
 
 @Injectable()
 export class AuthService {
@@ -27,9 +28,10 @@ export class AuthService {
   // 生成 JWT 令牌
   async login(user: User) {
     const payload = { username: user.userName, sub: user.id };
-    return {
+    const data = {
       access_token: this.jwtService.sign(payload),
       user
-    };
+    }
+    return ResultData.success(data)
   }
 }

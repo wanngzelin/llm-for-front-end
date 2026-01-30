@@ -6,6 +6,8 @@ import './index.less';
 import request from '@/utils/request';
 import apiConfig from '../../../config/apiConfig';
 import { history } from 'umi';
+import { btoaItem } from '@/utils/storage';
+import { User } from '@/typeVo';
 
 const { Title } = Typography;
 
@@ -27,11 +29,10 @@ const Login: React.FC = () => {
   const handleSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      // 这里可以添加登录逻辑
-      console.log('登录信息:', values);
-      // 模拟登录请求
-      const { data, success } = await request.post(apiConfig.auth.login, values)
-      if(success){
+      const { data, success } = await request.post<{ user: User, access_token: string }>(apiConfig.auth.login, values)
+      if (success) {
+        btoaItem('token', data.access_token)
+        btoaItem('userInfo', JSON.stringify(data.user))
         history.replace('/')
       }
       // 登录成功后的处理
