@@ -26,13 +26,34 @@ const LLMChat: React.FC = () => {
   }
 
   /**
+   * 修改会话标题名称
+   * @param id string
+   * @param title string
+   */
+  const updateTitle = async (id: string, title: string) => {
+    const { data } = await request.post<IConversation>(apiConfig.conversations.update, { id, title })
+    const item = formatList([data])[0]
+    setConversationList((v) => {
+      return v.map(k => {
+        if (k.key === data.id) return item
+        return k
+      })
+    })
+  }
+
+  /**
    * 提交对话
    * @param msg string
    */
   const onSubmit = async (msg: string) => {
     let currentId: string
+    /** 如果没有不存在会话，先生成会话 */
     if (!activeKey) {
       currentId = await createConversation(msg)
+    }
+    /** 如果是新建的会话，没有历史记录，修改第一条消息为标题 */
+    if (activeKey && items.length === 0) {
+      await updateTitle(activeKey, msg)
     }
     setContent('')
     setLoading(true)

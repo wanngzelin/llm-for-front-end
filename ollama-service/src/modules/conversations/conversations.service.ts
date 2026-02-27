@@ -7,6 +7,7 @@ import { UserService } from '../user/user.service';
 import { ResultData } from '@/common/model/response.model';
 import { AIROLE } from '@/constants/constant.enum';
 import { SendMessageDto } from './dto/message.dto';
+import { UpdateConversationDto } from './dto/conversation.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -33,6 +34,17 @@ export class ConversationsService {
     } catch (error) {
       console.log('err', error)
     }
+  }
+
+  /**
+   * 更新会话标题
+   * @param conversation 
+   * @returns 
+   */
+  async update(conversation: UpdateConversationDto): Promise<ResultData<Conversation | null>> {
+    if (!conversation.id) return ResultData.fail(HttpStatus.BAD_REQUEST, '修改数据不存在')
+    const con = await this.conversationRepo.save(conversation)
+    return ResultData.success(con)
   }
 
   /**

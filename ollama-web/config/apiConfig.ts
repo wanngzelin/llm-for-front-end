@@ -13,6 +13,7 @@ const apiConfig = {
   },
   conversations: {
     add: '/conversations/add',
+    update: '/conversations/update',
     saveMsg: '/conversations/saveMsg',
     findList: '/conversations/findList',
     delete: '/conversations/delete',

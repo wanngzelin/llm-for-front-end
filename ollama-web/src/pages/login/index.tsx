@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import './index.less';
@@ -30,8 +30,8 @@ const Login: React.FC = () => {
     try {
       const { data, success } = await request.post<{ user: User, access_token: string }>(apiConfig.auth.login, values)
       if (success) {
-        sessionStorage.setItem('token',data.access_token)
-        sessionStorage.setItem('userInfo',JSON.stringify(data.user))
+        sessionStorage.setItem('token', data.access_token)
+        sessionStorage.setItem('userInfo', JSON.stringify(data.user))
         history.replace('/')
       }
       // 登录成功后的处理
@@ -42,11 +42,20 @@ const Login: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    form.resetFields()
+  }, [])
+
   return (
     <div className="login-container">
       <div className="login-form-wrapper">
-        <Card className="login-card" title={<Title level={2}>登录</Title>}>
+        <Card
+          className="login-card"
+          title={<Title level={2}>登录</Title>}
+          // extra={<a href="#" className="forgot-password">注册</a>}
+        >
           <Form
+            initialValues={{}}
             form={form}
             onFinish={handleSubmit}
             layout="vertical"
@@ -60,6 +69,7 @@ const Login: React.FC = () => {
               ]}
             >
               <Input
+                autoComplete="off"
                 prefix={<UserOutlined className="prefix-icon" />}
                 placeholder="请输入用户名"
                 size="large"
@@ -82,12 +92,7 @@ const Login: React.FC = () => {
               />
             </Form.Item>
 
-            {/* <Form.Item>
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox>记住我</Checkbox>
-              </Form.Item>
-              <a href="#" className="forgot-password">忘记密码?</a>
-            </Form.Item> */}
+            {/* <a href="#" className="forgot-password">注册</a> */}
 
             <Form.Item>
               <Button

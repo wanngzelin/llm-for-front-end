@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CreateConversationDto } from './dto/conversation.dto';
+import { CreateConversationDto, UpdateConversationDto } from './dto/conversation.dto';
 import { ConversationsService } from './conversations.service';
 import { SendMessageDto } from './dto/message.dto';
 
@@ -17,6 +17,13 @@ export class ConversationsController {
     return await this.conversationService.create(userId, title)
   }
 
+  @ApiOperation({ summary: '更新会话标题' })
+  @HttpCode(HttpStatus.OK)
+  @Post('update')
+  async update(@Body() con: UpdateConversationDto) {
+    return await this.conversationService.update(con)
+  }
+
   @ApiOperation({ summary: '保存一条消息（用户或AI）' })
   @Post('saveMsg')
   @HttpCode(HttpStatus.OK)
@@ -25,6 +32,7 @@ export class ConversationsController {
   }
 
   @ApiOperation({ summary: '查询用户的所有会话' })
+  @HttpCode(HttpStatus.OK)
   @Get('findList')
   async findList(@CurrentUser('sub') userId: string) {
     return await this.conversationService.findList(userId)

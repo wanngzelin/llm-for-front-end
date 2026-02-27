@@ -1,5 +1,5 @@
 import { Outlet, useLocation, Helmet, useRouteProps, history } from 'umi';
-import { Layout as AntdLayout, Menu } from 'antd';
+import { Layout as AntdLayout, Button, Menu } from 'antd';
 import { MessageOutlined, SettingOutlined } from '@ant-design/icons';
 
 const { Sider, Content } = AntdLayout;
@@ -32,7 +32,10 @@ export default function Layout() {
         <title>{meta?.title}</title>
       </Helmet>
       <AntdLayout className='h-full'>
-        <Sider theme="light" className="shadow-md">
+        <Sider
+          theme="light"
+          className="shadow-md"
+        >
           <div className="h-16 text-lg font-bold text-slate-900 bg-gray-50 display-center">Ollama Web</div>
           <Menu
             onClick={menuClick}
