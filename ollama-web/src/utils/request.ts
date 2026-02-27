@@ -16,7 +16,7 @@ export interface ApiResponse<T = any> {
  */
 const instance: AxiosInstance = axios.create({
   baseURL: `http://127.0.0.1:9999/${process.env.UMI_ENV === 'dev' ? 'api' : ''}`, // 基础 URL，可根据环境配置
-  timeout: 10000, // 请求超时时间
+  timeout: 1000 * 60 * 5, // 请求超时时间
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,7 +30,7 @@ const instance: AxiosInstance = axios.create({
 instance.interceptors.request.use(
   (config) => {
     // 从本地存储获取 token
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -54,7 +54,7 @@ instance.interceptors.response.use(
     // 如果响应码不是 200，视为错误
     if (res.code !== 200) {
       message.error(res.message || '请求失败');
-      return Promise.reject(new Error(res.message || '请求失败'));
+      // return Promise.reject(new Error(res.message || '请求失败'));
     }
 
     return response;
@@ -76,7 +76,7 @@ instance.interceptors.response.use(
         // 可以在这里添加跳转到登录页的逻辑
         break;
       case 403:
-        message.error('拒绝访问');
+        message.error('令牌失效，或服务器未启动');
         break;
       case 404:
         message.error('请求的资源不存在');

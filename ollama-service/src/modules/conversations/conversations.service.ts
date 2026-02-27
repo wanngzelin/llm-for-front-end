@@ -1,0 +1,94 @@
+import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Conversation } from './entities/conversation.entity';
+import { DataSource, Repository } from 'typeorm';
+import { Message } from './entities/message.entity';
+import { UserService } from '../user/user.service';
+import { ResultData } from '@/common/model/response.model';
+import { AIROLE } from '@/constants/constant.enum';
+import { SendMessageDto } from './dto/message.dto';
+
+@Injectable()
+export class ConversationsService {
+  constructor(
+    @InjectRepository(Conversation)
+    private conversationRepo: Repository<Conversation>,
+    @InjectRepository(Message)
+    private messageRepo: Repository<Message>,
+    private dataSource: DataSource,
+    private userService: UserService
+  ) { }
+
+  /**
+   * 创建新会话
+   */
+  async create(userId: string, title = '新对话'): Promise<ResultData<Conversation | null>> {
+    try {
+      const conversation = this.conversationRepo.create({
+        userId,
+        title
+      })
+      const conversations = await this.conversationRepo.save(conversation)
+      return ResultData.success(conversations)
+    } catch (error) {
+      console.log('err', error)
+    }
+  }
+
+  /**
+   * 保存一条消息（用户或AI）
+   */
+  async saveteMessage({ conversationId, role, content }: SendMessageDto): Promise<ResultData<Message | null>> {
+    const conversation = await this.conversationRepo.findOneBy({ id: conversationId })
+    if (!conversation) return ResultData.fail(HttpStatus.NOT_FOUND, '会话不存在')
+    const messageEntity = this.messageRepo.create({ conversationId, role, content })
+    const message = await this.messageRepo.save(messageEntity)
+    return ResultData.success(message)
+  }
+
+  /**
+   * 查询用户的所有会话
+   * @param userId 用户id
+   */
+  async findList(userId: string) {
+    const conversationList = await this.conversationRepo.find({
+      where: { userId },
+    })
+    return ResultData.success(conversationList)
+  }
+
+  /**
+   * 根据对话id查询对话的所有记录
+   * @param conversationId 
+   */
+  async findMsgByConversationId(conversationId: string): Promise<ResultData<Message[] | null>> {
+    const messageList = await this.messageRepo.find({
+      where: { conversationId },
+      order: { createdAt: 'ASC' }
+    })
+    return ResultData.success(messageList)
+  }
+
+  /**
+   * 保存一次完成的AI对话
+   * @param message SendMessageDto[]
+   */
+  async saveExchange(message: SendMessageDto[]) {
+    try {
+      const msgList = await this.messageRepo.save(message)
+      return ResultData.success(msgList)
+    } catch (error) {
+      console.log('error', error)
+    }
+  }
+
+  /**
+   * 删除会话
+   * @param id string
+   */
+  async deleteConversation(id: string) {
+    const conversation = await this.conversationRepo.delete(id)
+    if (conversation.affected > 0) return ResultData.success(null)
+    return ResultData.fail(HttpStatus.BAD_REQUEST, '数据更新失败')
+  }
+}

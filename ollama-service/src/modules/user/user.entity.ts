@@ -5,7 +5,9 @@
 import { STATUS } from "@/constants/constant.enum";
 import { Exclude } from "class-transformer";
 import { CommonEntity } from "@/common/entity/common.entity";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, OneToMany } from "typeorm";
+import { ChatModel } from "../chat-model/chat-model.entity";
+import { Conversation } from "../conversations/entities/conversation.entity";
 
 @Entity('sys_user')
 export class User extends CommonEntity {
@@ -29,18 +31,6 @@ export class User extends CommonEntity {
   password: string;
 
   /**
-   * 登录IP地址,长度限制：64个字符
-   */
-  @Column('varchar', { name: 'login_ip', length: 64, nullable: true })
-  loginIp?: string;
-
-  /**
-   * 登录时间,类型： datetime
-   */
-  @Column('datetime', { name: 'login_date', nullable: true })
-  loginDate?: Date;
-
-  /**
    * 状态:-1: 删除, 0: 正常, 1: 停用,默认值：0
    */
   @Column('tinyint', {
@@ -49,6 +39,12 @@ export class User extends CommonEntity {
     default: STATUS.NORMAL
   })
   status: STATUS;
+
+  @OneToMany(() => ChatModel, (model) => model.user)
+  model: ChatModel[]
+
+  @OneToMany(() => Conversation, (conversation) => conversation.user)
+  conversations: Conversation[];
 
 
   constructor(partial: Partial<User>) {

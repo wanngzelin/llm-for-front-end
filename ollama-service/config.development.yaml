@@ -10,6 +10,7 @@ mysql:
   username: 'root'
   password: '123456'
   charset: 'utf8'
+  timezone: '+08:00'
 
 mongodb:
   db: 'mongodb://localhost:27017/lingmengcan'
@@ -23,3 +24,6 @@ files:
 
 stablediffusion:
   apiUrl: 'http://localhost:7861'
+
+ollama:
+  url: 'http://localhost:11434'

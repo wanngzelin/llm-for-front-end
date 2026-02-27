@@ -8,3 +8,8 @@ export enum ORDER {
   ASC = 'ASC',
   DESC = 'DESC',
 }
+
+export enum AIROLE {
+  USER = 'user',
+  ASSISTANT = 'assistant',
+}

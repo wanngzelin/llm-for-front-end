@@ -30,7 +30,7 @@ export class ResultData<T = any> {
     return new ResultData(RESPONSE_SUCCESS_CODE, data, success, message)
   }
 
-  static error(code: number, message = '请求失败') {
+  static fail(code: number, message = '请求失败') {
     return new ResultData(code, null, false, message)
   }
 }

@@ -1,14 +1,12 @@
-import { Outlet, useLocation, Helmet, useRouteProps } from 'umi';
+import { Outlet, useLocation, Helmet, useRouteProps, history } from 'umi';
 import { Layout as AntdLayout, Menu } from 'antd';
 import { MessageOutlined, SettingOutlined } from '@ant-design/icons';
-import './index.less';
 
 const { Sider, Content } = AntdLayout;
 
 export default function Layout() {
   const location = useLocation();
   const { meta } = useRouteProps();
-  console.log('meta', meta)
   const currentPath = location.pathname;
 
   const menuItems = [
@@ -24,22 +22,27 @@ export default function Layout() {
     },
   ];
 
+  const menuClick = (info: { key: string; keyPath: string[]; }) => {
+    history.push(info.key)
+  }
+
   return (
     <>
       <Helmet>
         <title>{meta?.title}</title>
       </Helmet>
-      <AntdLayout className='container'>
-        <Sider theme="light" className="sider">
-          <div className="logo">Ollama Web</div>
+      <AntdLayout className='h-full'>
+        <Sider theme="light" className="shadow-md">
+          <div className="h-16 text-lg font-bold text-slate-900 bg-gray-50 display-center">Ollama Web</div>
           <Menu
+            onClick={menuClick}
             mode="inline"
             selectedKeys={[currentPath]}
             items={menuItems}
-            className="nav-menu"
+            className="border-none h-[calc(100% - 64px)]"
           />
         </Sider>
-        <Content className="content">
+        <Content className="p-4 m-0 min-h-screen bg-gray-50">
           <Outlet />
         </Content>
       </AntdLayout>

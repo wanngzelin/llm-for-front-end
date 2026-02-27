@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
-import { Card, Form, Input, Button, Checkbox, Typography } from 'antd';
+import { Card, Form, Input, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import './index.less';
 import request from '@/utils/request';
 import apiConfig from '../../../config/apiConfig';
 import { history } from 'umi';
-import { btoaItem } from '@/utils/storage';
 import { User } from '@/typeVo';
 
 const { Title } = Typography;
@@ -26,13 +25,13 @@ const Login: React.FC = () => {
    * @param {string} values.username - 用户名
    * @param {string} values.password - 密码
    */
-  const handleSubmit = async (values: { username: string; password: string }) => {
+  const handleSubmit = async (values: { userName: string; password: string }) => {
     setLoading(true);
     try {
       const { data, success } = await request.post<{ user: User, access_token: string }>(apiConfig.auth.login, values)
       if (success) {
-        btoaItem('token', data.access_token)
-        btoaItem('userInfo', JSON.stringify(data.user))
+        sessionStorage.setItem('token',data.access_token)
+        sessionStorage.setItem('userInfo',JSON.stringify(data.user))
         history.replace('/')
       }
       // 登录成功后的处理
@@ -53,7 +52,7 @@ const Login: React.FC = () => {
             layout="vertical"
           >
             <Form.Item
-              name="username"
+              name="userName"
               label="用户名"
               rules={[
                 { required: true, message: '请输入用户名' },

@@ -6,15 +6,20 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '@/constants/jwtConstants';
-import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({ secret: jwtConstants, signOptions: { expiresIn: '24h' } }),
+    JwtModule.register({
+      secret: jwtConstants,
+      signOptions: {
+        expiresIn: '24h',
+        algorithm: 'HS256'
+      }
+    }),
     UserModule
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
   // 3. 导出AuthService和JwtModule（供其他模块/全局使用）
   exports: [AuthService, JwtModule],

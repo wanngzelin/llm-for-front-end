@@ -16,7 +16,11 @@ async function bootstrap() {
   //   transformOptions: { enableImplicitConversion: true }, // 隐式类型转换
   // }));
 
-  app.enableCors();
+  app.enableCors({
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
 
   // 生成api文档, swagger
   const config = new DocumentBuilder()

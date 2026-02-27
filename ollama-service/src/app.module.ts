@@ -1,15 +1,17 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import configuration from '@/config/configuration'
 import { UserModule } from '@/modules/user/user.module';
-import { AuthService } from './modules/auth/auth.service';
 import { AuthModule } from './modules/auth/auth.module';
-import { JwtModule } from '@nestjs/jwt';
-import { jwtConstants } from './constants/jwtConstants';
+import { ChatModelModule } from './modules/chat-model/chat-model.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { ConversationsModule } from './modules/conversations/conversations.module';
+import { OllamaModule } from './modules/ollama/ollama.module';
+import { AllExceptionsFilter } from './common/filter/http-exception.filter';
 
 @Module({
   imports: [
@@ -28,18 +30,30 @@ import { jwtConstants } from './constants/jwtConstants';
         charset: configService.get<string>('mysql.charset'),
         entities: [join(__dirname, 'modules/**/*.entity.{ts,js}'), join(__dirname, 'entities/**/*.entity.{ts,js}')],
         synchronize: true,
+        timezone: configService.get<string>('mysql.timezone'),
       }),
       inject: [ConfigService],
     }),
     UserModule,
-    AuthModule
+    AuthModule,
+    ChatModelModule,
+    ConversationsModule,
+    OllamaModule
   ],
-  controllers: [],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter
     }
   ],
+  controllers: [],
 })
 export class AppModule { }
