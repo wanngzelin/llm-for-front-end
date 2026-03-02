@@ -29,7 +29,6 @@ export class AuthService {
   // 生成 JWT 令牌
   async login(user: User) {
     const payload: JwtPayload = { userName: user.userName, sub: user.id };
-    console.log('payload', payload)
     const data = {
       access_token: this.jwtService.sign(payload),
       user

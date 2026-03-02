@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateConversationDto, UpdateConversationDto } from './dto/conversation.dto';
 import { ConversationsService } from './conversations.service';
-import { SendMessageDto } from './dto/message.dto';
+import { SendMessageDto, UpdateMsgDto } from './dto/message.dto';
 
 @ApiTags('会话/消息管理')
 @Controller('conversations')
@@ -24,11 +24,18 @@ export class ConversationsController {
     return await this.conversationService.update(con)
   }
 
+  @ApiOperation({ summary: '更新消息' })
+  @HttpCode(HttpStatus.OK)
+  @Post('updateMsg')
+  async updateMsg(@Body() msg: UpdateMsgDto) {
+    return await this.conversationService.updateMsg(msg)
+  }
+
   @ApiOperation({ summary: '保存一条消息（用户或AI）' })
   @Post('saveMsg')
   @HttpCode(HttpStatus.OK)
   async saveMessage(@Body() createMsgDto: SendMessageDto) {
-    return await this.conversationService.saveteMessage(createMsgDto)
+    return await this.conversationService.saveMessage(createMsgDto)
   }
 
   @ApiOperation({ summary: '查询用户的所有会话' })
@@ -49,5 +56,10 @@ export class ConversationsController {
   @Delete('delete/:id')
   async deleteConversation(@Param('id') id: string) {
     return await this.conversationService.deleteConversation(id)
+  }
+  @ApiOperation({ summary: '删除消息' })
+  @Delete('deleteMsg/:id')
+  async deleteMsg(@Param('id') id: string) {
+    return await this.conversationService.deleteMsg(id)
   }
 }

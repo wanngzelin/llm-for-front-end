@@ -1,5 +1,5 @@
 import { AIROLE } from '@/constants/constant.enum';
-import { IsString, IsNotEmpty, IsUUID, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsEnum, IsOptional, IsEmpty, IsNumber } from 'class-validator';
 
 export class SendMessageDto {
 
@@ -12,6 +12,26 @@ export class SendMessageDto {
   content: string;
 
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  think?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsNotEmpty()
+  thinkDuration?: number
+
+  @IsOptional()
   @IsEnum(AIROLE)
   role?: AIROLE
+}
+
+export class UpdateMsgDto extends SendMessageDto {
+  /**
+    * 主键id
+    */
+  @IsEmpty()
+  @IsString()
+  @IsUUID()
+  id: string;
 }

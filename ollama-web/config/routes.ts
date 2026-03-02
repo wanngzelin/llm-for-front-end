@@ -10,8 +10,8 @@ const routes: RoutesType = [
     layout: false,
     wrappers: ['@/wrappers/authWrappers'],
     routes: [
-      { path: '', component: './llmChat', meta: { title: '对话' } },
-      { path: '/llmChat', component: './llmChat', meta: { title: '对话' } },
+      { path: '', component: './llmChat', meta: { title: 'Ai Chat' } },
+      { path: '/llmChat', component: './llmChat', meta: { title: 'Ai Chat' } },
       { path: '/model', component: './model', meta: { title: '模型管理' } },
     ],
   },

@@ -51,18 +51,18 @@ const Login: React.FC = () => {
       <div className="login-form-wrapper">
         <Card
           className="login-card"
-          title={<Title level={2}>登录</Title>}
+          title={<div className='font-bold text-slate-900 text-xl'>登录</div>}
           // extra={<a href="#" className="forgot-password">注册</a>}
         >
           <Form
             initialValues={{}}
             form={form}
             onFinish={handleSubmit}
-            layout="vertical"
+            layout='horizontal'
           >
             <Form.Item
               name="userName"
-              label="用户名"
+              // label="用户名"
               rules={[
                 { required: true, message: '请输入用户名' },
                 { whitespace: true, message: '用户名不能为空' }
@@ -78,7 +78,7 @@ const Login: React.FC = () => {
 
             <Form.Item
               name="password"
-              label="密码"
+              // label="密码"
               rules={[
                 { required: true, message: '请输入密码' },
                 { whitespace: true, message: '密码不能为空' }

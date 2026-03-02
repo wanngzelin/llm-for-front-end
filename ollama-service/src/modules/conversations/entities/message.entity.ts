@@ -12,6 +12,12 @@ export class Message extends CommonEntity {
   @Column('text')
   content: string;
 
+  @Column('text', { nullable: true })
+  think: string;
+
+  @Column('tinyint', { name: 'think_duration', default: 3 })
+  thinkDuration: number;
+
   @ManyToOne(() => Conversation, conv => conv.messages, {
     onDelete: 'CASCADE'
   })

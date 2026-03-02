@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, List, Layout, type GetProp } from "antd";
-import { Conversations, Sender, Bubble, type ConversationsProps, type BubbleItemType, BubbleListProps } from '@ant-design/x';
+import { Avatar, Layout, List, type GetProp } from "antd";
+import { Conversations, Sender, Bubble, Think, type ConversationsProps, type BubbleListProps } from '@ant-design/x';
+import { XMarkdown } from '@ant-design/x-markdown'
 import { DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import dayjs, { Dayjs } from "dayjs";
+
 import request from "@/utils/request";
-import apiConfig from "../../../config/apiConfig";
+import apiConfig, { baseUrl } from "../../../config/apiConfig";
 import { IMsg, IConversation } from './llmChat.vo';
 import { ItemType } from "@ant-design/x/es/conversations";
 import { useBubbleList } from "@/utils/hooks";
+import { getAuthHeaders } from "@/utils/tools";
+import { IExBubbleItemType, ILLamaVo } from "@/typeVo";
+import { AIROLE } from "@/utils/constant.enum";
 
 const { Sider, Content } = Layout;
 
@@ -67,6 +73,106 @@ const LLMChat: React.FC = () => {
   }
 
   /**
+   * 流式对话接口
+   * @param content 对话内容
+   */
+  const streamChat = async (content: string) => {
+    setLoading(true)
+    /** 保存用户当前输入的问题 */
+    const { data } = await request.post<{ id: string }>(apiConfig.conversations.saveMsg, {
+      conversationId: activeKey,
+      content,
+      role: AIROLE.USER
+    })
+    add({ key: data.id, content, role: 'user' })
+    setContent('')
+    /** 先创建待存储的AI回复信息 */
+    const { data: AIRes } = await request.post<{ id: string }>(apiConfig.conversations.saveMsg, {
+      conversationId: activeKey,
+      content: '',
+      think: '',
+      role: AIROLE.ASSISTANT
+    })
+    const headers = {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(), // 添加 token
+    };
+
+    const response = await fetch(`http://127.0.0.1:9999${apiConfig.ollama.chatStream}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        role: 'user', content,
+        conversationId: activeKey
+      }),
+    });
+    /** 更新UI列表 */
+    add({ key: AIRes.id, content: '', think: '', role: 'ai' })
+    if (!response.ok) {
+      setLoading(false)
+      await request.delete(`${apiConfig.conversations.deleteMsg}/${AIRes.id}`)
+      return
+    }
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    let buffer = '';
+    let AiContent = ''; // AI回复的内容
+    let AIThink = '' // AI 思考的内容
+    let thinkDone = false; // 是否思考完成
+    let durationT; // AI思考的时间
+    let duration = '0'; // AI思考的时间
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // 将新收到的字节解码为文本，并追加到缓冲区
+        buffer += decoder.decode(value, { stream: true });
+
+        // 按行分割处理
+        const events = buffer.split('\n');
+        // 最后一个可能是不完整的，保留在 buffer 中
+        buffer = events.pop() || '';
+
+        for (const event of events) {
+          if (event.trim() === '') continue;
+          try {
+            const parsed: ILLamaVo = JSON.parse(event);
+            if (!durationT) durationT = dayjs(parsed.created_at)
+            if (parsed.message.thinking) AIThink += parsed.message.thinking;
+            if (parsed.message.content) {
+              thinkDone = true
+              AiContent += parsed.message.content;
+              duration = dayjs(parsed.created_at).diff(durationT, 'seconds').toString()
+            }
+            update(AIRes.id, { content: AiContent, think: AIThink, thinkDone, thinkDuration: thinkDone ? duration : undefined })
+          } catch (e) {
+            console.error('Failed to parse line:', event, e);
+          }
+        }
+      }
+    }
+    catch (error) {
+      console.log(error);
+    }
+    finally {
+      // 确保释放读取器
+      reader.releaseLock()
+      setLoading(false)
+      if (response.ok) {
+        request.post(apiConfig.conversations.updateMsg, {
+          id: AIRes.id,
+          content: AiContent,
+          think: AIThink,
+          role: AIROLE.ASSISTANT,
+          thinkDuration: Number(duration)
+        })
+      }
+    }
+  }
+
+  /**
    * 创建会话
    * @param title 
    */
@@ -102,10 +208,15 @@ const LLMChat: React.FC = () => {
    */
   const findMsgByConversationId = async (id: string) => {
     const { data } = await request.get<IMsg[]>(apiConfig.conversations.findMsgByConversationId, { params: { id } })
-    const historyMsg: BubbleItemType[] = data.map(v => ({
+    const historyMsg: IExBubbleItemType[] = data.map(v => ({
       key: v.id!,
       content: v.content,
-      role: v.role === "assistant" ? 'ai' : v.role
+      role: v.role === AIROLE.ASSISTANT ? 'ai' : v.role,
+      ...(v.role === AIROLE.ASSISTANT ? {
+        think: v.think,
+        thinkDone: true,
+        thinkDuration: v.thinkDuration
+      } : {})
     }))
     set(historyMsg)
     setLoading(false)
@@ -171,14 +282,15 @@ const LLMChat: React.FC = () => {
   const memoRole: BubbleListProps['role'] = useMemo(() => ({
     ai: {
       typing: true,
-      avatar: <Avatar size='small' className="bg-green-500 text-white mt-1">AI</Avatar>
+      avatar: <Avatar size='small' className="bg-green-500 text-white mt-1">AI</Avatar>,
+
     },
     user: {
       placement: 'end',
       avatar: <Avatar size='small' className="bg-blue-500 text-white mt-1">U</Avatar>
     }
   }), [])
-
+ 
   return (
     <Layout className='h-full'>
       <Sider theme="light" className="shadow-md">
@@ -195,34 +307,49 @@ const LLMChat: React.FC = () => {
       </Sider>
       <Content className="pl-2">
         <div className="h-[calc(100%-60px)] overflow-y-auto p-4">
-          <Bubble.List
+          {/* <Bubble.List
             autoScroll
             role={memoRole}
             items={items}
-          />
-          {/* <List
-            dataSource={messageList}
+          /> */}
+          <List
+            dataSource={items}
             renderItem={(msg) => (
               <Bubble
+                className="mb-4"
                 placement={msg.role !== 'user' ? 'start' : 'end'}
                 content={msg.content}
+                streaming={msg?.think ? true : false}
                 typing={msg.role === 'user' ? false : true}
                 avatar={
                   <Avatar size='small' className={`${msg.role !== 'user' ? 'bg-green-500' : 'bg-blue-500'} text-white mt-1`}>
                     {msg.role !== 'user' ? 'AI' : 'U'}
                   </Avatar>
                 }
+                contentRender={msg.role === 'user' ? undefined : () => (
+                  <>
+                    {msg.think ? <Think
+                      defaultExpanded={!msg.thinkDone}
+                      blink={!msg.thinkDone}
+                      loading={!msg.thinkDone}
+                      title={msg.thinkDone ? `思考了 ${msg.thinkDuration ? msg.thinkDuration + '秒' : ''}` : '思考中...'}>{msg.think}</Think>
+                      : null
+                    }
+                    <XMarkdown content={msg.content} />
+                  </>
+                )}
               />
             )}
-          /> */}
+          />
         </div>
+
         <Sender
           placeholder="开始对话"
           className="bg-white"
           value={content}
           onChange={v => setContent(v)}
           loading={loading}
-          onSubmit={onSubmit}
+          onSubmit={streamChat}
         />
       </Content>
     </Layout>

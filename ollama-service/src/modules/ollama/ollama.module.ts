@@ -9,8 +9,8 @@ import { ConversationsModule } from '../conversations/conversations.module';
   imports: [
     HttpModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        timeout: 60000,
-        baseURL: configService.get<string>('ollama.url'),
+        timeout: 1000 * 60 * 5,
+        // baseURL: configService.get<string>('ollama.url'),
       }),
       inject: [ConfigService],
     }),

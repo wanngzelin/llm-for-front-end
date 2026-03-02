@@ -6,7 +6,7 @@ import { Message } from './entities/message.entity';
 import { UserService } from '../user/user.service';
 import { ResultData } from '@/common/model/response.model';
 import { AIROLE } from '@/constants/constant.enum';
-import { SendMessageDto } from './dto/message.dto';
+import { SendMessageDto, UpdateMsgDto } from './dto/message.dto';
 import { UpdateConversationDto } from './dto/conversation.dto';
 
 @Injectable()
@@ -47,15 +47,26 @@ export class ConversationsService {
     return ResultData.success(con)
   }
 
+  /** 更新消息 */
+  async updateMsg(msg: UpdateMsgDto) {
+    if (!msg.id) return ResultData.fail(HttpStatus.BAD_REQUEST, '修改数据不存在')
+    const con = await this.messageRepo.save(msg)
+    return ResultData.success(con)
+  }
+
   /**
    * 保存一条消息（用户或AI）
    */
-  async saveteMessage({ conversationId, role, content }: SendMessageDto): Promise<ResultData<Message | null>> {
-    const conversation = await this.conversationRepo.findOneBy({ id: conversationId })
-    if (!conversation) return ResultData.fail(HttpStatus.NOT_FOUND, '会话不存在')
-    const messageEntity = this.messageRepo.create({ conversationId, role, content })
-    const message = await this.messageRepo.save(messageEntity)
-    return ResultData.success(message)
+  async saveMessage(msg: SendMessageDto): Promise<ResultData<Message | null>> {
+    try {
+      const conversation = await this.conversationRepo.findOneBy({ id: msg.conversationId })
+      if (!conversation) return ResultData.fail(HttpStatus.NOT_FOUND, '会话不存在')
+      const messageEntity = this.messageRepo.create(msg)
+      const message = await this.messageRepo.save(messageEntity)
+      return ResultData.success(message)
+    } catch (error) {
+      console.log('error', error)
+    }
   }
 
   /**
@@ -101,6 +112,13 @@ export class ConversationsService {
   async deleteConversation(id: string) {
     const conversation = await this.conversationRepo.delete(id)
     if (conversation.affected > 0) return ResultData.success(null)
+    return ResultData.fail(HttpStatus.BAD_REQUEST, '数据更新失败')
+  }
+
+  /** 删除消息 */
+  async deleteMsg(id: string) {
+    const msg = await this.messageRepo.delete(id)
+    if (msg.affected > 0) return ResultData.success(null)
     return ResultData.fail(HttpStatus.BAD_REQUEST, '数据更新失败')
   }
 }

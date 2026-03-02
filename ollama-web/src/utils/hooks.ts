@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { type BubbleItemType } from "@ant-design/x";
+import { IExBubbleItemType } from "@/typeVo";
 
 export function useAuth() {
   const userInfo = sessionStorage.getItem('userInfo');
@@ -8,15 +8,15 @@ export function useAuth() {
   return false
 }
 
-export function useBubbleList(initialItems: BubbleItemType[] = []) {
-  const [items, setItems] = useState<BubbleItemType[]>(initialItems);
+export function useBubbleList(initialItems: IExBubbleItemType[] = []) {
+  const [items, setItems] = useState<IExBubbleItemType[]>(initialItems);
 
-  const add = useCallback((item: BubbleItemType) => {
+  const add = useCallback((item: IExBubbleItemType) => {
     setItems((prev) => [...prev, item]);
   }, []);
 
   const update = useCallback(
-    (key: string | number, data: Omit<Partial<BubbleItemType>, 'key' | 'role'>) => {
+    (key: string | number, data: Omit<Partial<IExBubbleItemType>, 'key' | 'role'>) => {
       setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...data } : item)));
     },
     [],

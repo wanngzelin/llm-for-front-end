@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { message } from 'antd';
+import { baseUrl } from '../../config/apiConfig'
 
 /**
  * API 响应数据格式
@@ -15,7 +16,7 @@ export interface ApiResponse<T = any> {
  * 创建 axios 实例
  */
 const instance: AxiosInstance = axios.create({
-  baseURL: `http://127.0.0.1:9999/${process.env.UMI_ENV === 'dev' ? 'api' : ''}`, // 基础 URL，可根据环境配置
+  baseURL: baseUrl, // 基础 URL，可根据环境配置
   timeout: 1000 * 60 * 5, // 请求超时时间
   headers: {
     'Content-Type': 'application/json',
@@ -50,7 +51,6 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const res = response.data;
-
     // 如果响应码不是 200，视为错误
     if (res.code !== 200) {
       message.error(res.message || '请求失败');
