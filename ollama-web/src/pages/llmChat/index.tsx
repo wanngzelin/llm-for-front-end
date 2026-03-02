@@ -180,6 +180,7 @@ const LLMChat: React.FC = () => {
     const { data } = await request.post<IConversation>(apiConfig.conversations.add, { title })
     setConversationList(v => ([...formatList([data]), ...v]))
     setActiveKey(data.id)
+    set([])
     return data.id
   }
 
@@ -290,7 +291,7 @@ const LLMChat: React.FC = () => {
       avatar: <Avatar size='small' className="bg-blue-500 text-white mt-1">U</Avatar>
     }
   }), [])
- 
+
   return (
     <Layout className='h-full'>
       <Sider theme="light" className="shadow-md">
