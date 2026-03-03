@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Layout, List, type GetProp } from "antd";
-import { Conversations, Sender, Bubble, Think, type ConversationsProps, type BubbleListProps } from '@ant-design/x';
+import { Conversations, Sender, Bubble, Think, type ConversationsProps, type BubbleListProps, Actions } from '@ant-design/x';
 import { XMarkdown } from '@ant-design/x-markdown'
-import { DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
-import dayjs, { Dayjs } from "dayjs";
+import { DeleteOutlined, HistoryOutlined, RedoOutlined } from '@ant-design/icons';
+import dayjs from "dayjs";
 
 import request from "@/utils/request";
 import apiConfig, { baseUrl } from "../../../config/apiConfig";
@@ -72,27 +72,18 @@ const LLMChat: React.FC = () => {
     setLoading(false)
   }
 
-  /**
-   * 流式对话接口
-   * @param content 对话内容
-   */
-  const streamChat = async (content: string) => {
-    setLoading(true)
-    /** 保存用户当前输入的问题 */
-    const { data } = await request.post<{ id: string }>(apiConfig.conversations.saveMsg, {
+  /** 保存对话消息 */
+  const saveMsg = async (val: { role: AIROLE, content: string }): Promise<string> => {
+    const { data: { id, content = '', think = '' } } = await request.post<{ id: string, content: string, think: string }>(apiConfig.conversations.saveMsg, {
+      ...val,
       conversationId: activeKey,
-      content,
-      role: AIROLE.USER
     })
-    add({ key: data.id, content, role: 'user' })
-    setContent('')
-    /** 先创建待存储的AI回复信息 */
-    const { data: AIRes } = await request.post<{ id: string }>(apiConfig.conversations.saveMsg, {
-      conversationId: activeKey,
-      content: '',
-      think: '',
-      role: AIROLE.ASSISTANT
-    })
+    add({ key: id, content, think, role: val.role === 'user' ? AIROLE.USER : 'ai' })
+    return id
+  }
+
+  /** 原生fetch发起流式对话请求 */
+  const sendStreamRequest = async (content: string) => {
     const headers = {
       'Content-Type': 'application/json',
       ...getAuthHeaders(), // 添加 token
@@ -101,16 +92,20 @@ const LLMChat: React.FC = () => {
     const response = await fetch(`http://127.0.0.1:9999${apiConfig.ollama.chatStream}`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        role: 'user', content,
-        conversationId: activeKey
-      }),
+      body: JSON.stringify(
+        {
+          role: 'user',
+          content,
+          conversationId: activeKey
+        }),
     });
-    /** 更新UI列表 */
-    add({ key: AIRes.id, content: '', think: '', role: 'ai' })
+    return response
+  }
+  /** 处理流式影响数据 */
+  const handleStreamResponse = async (response: Response, aiMsgId: string) => {
     if (!response.ok) {
       setLoading(false)
-      await request.delete(`${apiConfig.conversations.deleteMsg}/${AIRes.id}`)
+      // await request.delete(`${apiConfig.conversations.deleteMsg}/${aiMsgId}`)
       return
     }
     const reader = response.body!.getReader();
@@ -146,7 +141,7 @@ const LLMChat: React.FC = () => {
               AiContent += parsed.message.content;
               duration = dayjs(parsed.created_at).diff(durationT, 'seconds').toString()
             }
-            update(AIRes.id, { content: AiContent, think: AIThink, thinkDone, thinkDuration: thinkDone ? duration : undefined })
+            update(aiMsgId, { content: AiContent, think: AIThink, thinkDone, thinkDuration: thinkDone ? duration : undefined })
           } catch (e) {
             console.error('Failed to parse line:', event, e);
           }
@@ -162,7 +157,7 @@ const LLMChat: React.FC = () => {
       setLoading(false)
       if (response.ok) {
         request.post(apiConfig.conversations.updateMsg, {
-          id: AIRes.id,
+          id: aiMsgId,
           content: AiContent,
           think: AIThink,
           role: AIROLE.ASSISTANT,
@@ -170,6 +165,32 @@ const LLMChat: React.FC = () => {
         })
       }
     }
+  }
+  /**
+   * 流式对话接口
+   * @param content 对话内容
+   */
+  const streamChat = async (content: string) => {
+    setLoading(true)
+    /** 如果是新建的会话，没有历史记录，修改第一条消息为标题 */
+    if (activeKey && items.length === 0) {
+      await updateTitle(activeKey, content)
+    }
+    /** 保存用户当前输入的问题 */
+    await saveMsg({ role: AIROLE.USER, content })
+    /** 清空用户输入框 */
+    setContent('')
+    /** 先创建待存储的AI回复信息 */
+    const response = await sendStreamRequest(content)
+
+    const aiMsgId = await saveMsg({ role: AIROLE.ASSISTANT, content: '' })
+    handleStreamResponse(response, aiMsgId)
+  }
+
+  /** 跟新消息对话 */
+  const retryConvastion = async (content: string, aiMsgId: string) => {
+    const response = await sendStreamRequest(content)
+    handleStreamResponse(response, aiMsgId)
   }
 
   /**
@@ -315,7 +336,7 @@ const LLMChat: React.FC = () => {
           /> */}
           <List
             dataSource={items}
-            renderItem={(msg) => (
+            renderItem={(msg, index) => (
               <Bubble
                 className="mb-4"
                 placement={msg.role !== 'user' ? 'start' : 'end'}
@@ -327,6 +348,13 @@ const LLMChat: React.FC = () => {
                     {msg.role !== 'user' ? 'AI' : 'U'}
                   </Avatar>
                 }
+                footer={() => (
+                  <Actions items={[{
+                    key: 'retry',
+                    icon: <RedoOutlined onClick={() => retryConvastion(items[index - 1].content, msg.key as string)} />,
+                    label: 'Retry',
+                  },]} />
+                )}
                 contentRender={msg.role === 'user' ? undefined : () => (
                   <>
                     {msg.think ? <Think
