@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { OllamaModule } from './modules/ollama/ollama.module';
 import { AllExceptionsFilter } from './common/filter/http-exception.filter';
+import { LangchainModule } from './modules/langchain/langchain.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { AllExceptionsFilter } from './common/filter/http-exception.filter';
     AuthModule,
     ChatModelModule,
     ConversationsModule,
-    OllamaModule
+    OllamaModule,
+    LangchainModule
   ],
   providers: [
     {

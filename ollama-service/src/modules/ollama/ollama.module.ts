@@ -4,6 +4,7 @@ import { OllamaController } from './ollama.controller';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { ConversationsModule } from '../conversations/conversations.module';
+import { LangchainModule } from '../langchain/langchain.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { ConversationsModule } from '../conversations/conversations.module';
       }),
       inject: [ConfigService],
     }),
-    ConversationsModule
+    ConversationsModule,
+    LangchainModule
   ],
   providers: [OllamaService],
   controllers: [OllamaController]

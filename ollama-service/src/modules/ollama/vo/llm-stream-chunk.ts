@@ -1,5 +1,5 @@
-/** 流式数据LLama的返回数据 */
-export interface ILLamaVo {
+/** llmama 模型返回数据格式统一 */
+export interface LLMStreamChunkVO {
   /** 思考信息 */
   thinking?: string;
   /** 回复内容 */

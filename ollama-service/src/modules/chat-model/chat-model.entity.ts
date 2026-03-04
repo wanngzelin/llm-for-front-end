@@ -14,7 +14,7 @@ export class ChatModel extends CommonEntity {
   /**
    * 随机概率，温度越大，随机概率越大，默认0.7
    */
-  @Column({ type: 'decimal', default: 0.7, nullable: true })
+  @Column({ type: 'decimal', default: 0.7, nullable: true, scale: 1, precision: 3 })
   temperature: number;
 
   /**

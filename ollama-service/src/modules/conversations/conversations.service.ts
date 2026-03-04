@@ -49,9 +49,13 @@ export class ConversationsService {
 
   /** 更新消息 */
   async updateMsg(msg: UpdateMsgDto) {
-    if (!msg.id) return ResultData.fail(HttpStatus.BAD_REQUEST, '修改数据不存在')
-    const con = await this.messageRepo.save(msg)
-    return ResultData.success(con)
+    try {
+      if (!msg.id) return ResultData.fail(HttpStatus.BAD_REQUEST, '修改数据不存在')
+      const con = await this.messageRepo.save(msg)
+      return ResultData.success(con)
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   /**

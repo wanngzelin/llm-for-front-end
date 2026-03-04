@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Layout, List, type GetProp } from "antd";
+import { Avatar, Layout, List, Dropdown, Button } from "antd";
 import { Conversations, Sender, Bubble, Think, type ConversationsProps, type BubbleListProps, Actions } from '@ant-design/x';
 import { XMarkdown } from '@ant-design/x-markdown'
-import { DeleteOutlined, HistoryOutlined, RedoOutlined } from '@ant-design/icons';
+import { DeleteOutlined, HistoryOutlined, RedoOutlined, OpenAIOutlined } from '@ant-design/icons';
 import dayjs from "dayjs";
 
 import request from "@/utils/request";
@@ -13,11 +13,15 @@ import { useBubbleList } from "@/utils/hooks";
 import { getAuthHeaders } from "@/utils/tools";
 import { IExBubbleItemType, ILLamaVo } from "@/typeVo";
 import { AIROLE } from "@/utils/constant.enum";
+import { ModelItem } from "../model/model.type";
 
 const { Sider, Content } = Layout;
 
 const LLMChat: React.FC = () => {
   const [loading, setLoading] = useState(false)
+  const [deepThink, setDeepThink] = useState(true);
+  const [modelList, setModelList] = useState<{ label: string; key: string }[]>([]) // 用户所有的模型
+  const [currentModel, setCurrentModel] = useState<ModelItem>()
   const [content, setContent] = useState('')
   const [activeKey, setActiveKey] = useState<string>() // 当前选中的会话
   const [items, set, add, update] = useBubbleList();
@@ -73,17 +77,17 @@ const LLMChat: React.FC = () => {
   }
 
   /** 保存对话消息 */
-  const saveMsg = async (val: { role: AIROLE, content: string }): Promise<string> => {
+  const saveMsg = async (val: { role: AIROLE, content: string }, currentId?: string): Promise<string> => {
     const { data: { id, content = '', think = '' } } = await request.post<{ id: string, content: string, think: string }>(apiConfig.conversations.saveMsg, {
       ...val,
-      conversationId: activeKey,
+      conversationId: activeKey ?? currentId,
     })
     add({ key: id, content, think, role: val.role === 'user' ? AIROLE.USER : 'ai' })
     return id
   }
 
   /** 原生fetch发起流式对话请求 */
-  const sendStreamRequest = async (content: string) => {
+  const sendStreamRequest = async (content: string, currentId?: string) => {
     const headers = {
       'Content-Type': 'application/json',
       ...getAuthHeaders(), // 添加 token
@@ -94,15 +98,22 @@ const LLMChat: React.FC = () => {
       headers,
       body: JSON.stringify(
         {
-          role: 'user',
-          content,
-          conversationId: activeKey
+          message: {
+            role: 'user',
+            content,
+            conversationId: activeKey ?? currentId
+          },
+          modelConfig: {
+            model: currentModel?.modelName,
+            temperature: currentModel?.temperature ? parseFloat(currentModel?.temperature + '') : 0.6,
+            think: deepThink
+          }
         }),
     });
     return response
   }
   /** 处理流式影响数据 */
-  const handleStreamResponse = async (response: Response, aiMsgId: string) => {
+  const handleStreamResponse = async (response: Response, aiMsgId: string, currentId?: string) => {
     if (!response.ok) {
       setLoading(false)
       // await request.delete(`${apiConfig.conversations.deleteMsg}/${aiMsgId}`)
@@ -120,7 +131,10 @@ const LLMChat: React.FC = () => {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          update(aiMsgId, { status: 'success' })
+          break;
+        }
 
         // 将新收到的字节解码为文本，并追加到缓冲区
         buffer += decoder.decode(value, { stream: true });
@@ -134,14 +148,14 @@ const LLMChat: React.FC = () => {
           if (event.trim() === '') continue;
           try {
             const parsed: ILLamaVo = JSON.parse(event);
-            if (!durationT) durationT = dayjs(parsed.created_at)
-            if (parsed.message.thinking) AIThink += parsed.message.thinking;
-            if (parsed.message.content) {
+            if (!durationT) durationT = dayjs(parsed.createAt)
+            if (parsed.thinking) AIThink += parsed.thinking;
+            if (parsed.content) {
               thinkDone = true
-              AiContent += parsed.message.content;
-              duration = dayjs(parsed.created_at).diff(durationT, 'seconds').toString()
+              AiContent += parsed.content;
+              duration = dayjs(parsed.createAt).diff(durationT, 'seconds').toString()
             }
-            update(aiMsgId, { content: AiContent, think: AIThink, thinkDone, thinkDuration: thinkDone ? duration : undefined })
+            update(aiMsgId, { content: AiContent, think: AIThink, thinkDone, thinkDuration: thinkDone ? duration : undefined, status: 'updating' })
           } catch (e) {
             console.error('Failed to parse line:', event, e);
           }
@@ -171,20 +185,25 @@ const LLMChat: React.FC = () => {
    * @param content 对话内容
    */
   const streamChat = async (content: string) => {
+    let currentId: string
     setLoading(true)
+    if (!activeKey) {
+      currentId = await createConversation(content)
+    }
     /** 如果是新建的会话，没有历史记录，修改第一条消息为标题 */
     if (activeKey && items.length === 0) {
       await updateTitle(activeKey, content)
     }
     /** 保存用户当前输入的问题 */
-    await saveMsg({ role: AIROLE.USER, content })
+    await saveMsg({ role: AIROLE.USER, content }, currentId!)
     /** 清空用户输入框 */
     setContent('')
     /** 先创建待存储的AI回复信息 */
-    const response = await sendStreamRequest(content)
+    const aiMsgId = await saveMsg({ role: AIROLE.ASSISTANT, content: '' }, currentId!)
 
-    const aiMsgId = await saveMsg({ role: AIROLE.ASSISTANT, content: '' })
-    handleStreamResponse(response, aiMsgId)
+    const response = await sendStreamRequest(content, currentId!)
+
+    handleStreamResponse(response, aiMsgId, currentId!)
   }
 
   /** 跟新消息对话 */
@@ -234,6 +253,7 @@ const LLMChat: React.FC = () => {
       key: v.id!,
       content: v.content,
       role: v.role === AIROLE.ASSISTANT ? 'ai' : v.role,
+      status: 'success',
       ...(v.role === AIROLE.ASSISTANT ? {
         think: v.think,
         thinkDone: true,
@@ -260,6 +280,7 @@ const LLMChat: React.FC = () => {
 
   useEffect(() => {
     findList()
+    findAllModel()
   }, [])
 
   /**
@@ -301,6 +322,17 @@ const LLMChat: React.FC = () => {
     },
   });
 
+  // 获取用户所有的模型
+  const findAllModel = async () => {
+    const { data } = await request.get<ModelItem[]>(apiConfig.chatModel.findAll)
+    const items = data.map(v => ({
+      label: v.modelName,
+      key: v.id!
+    }))
+    setCurrentModel(() => data.filter(v => v.isDefault)[0])
+    setModelList(items)
+  }
+
   const memoRole: BubbleListProps['role'] = useMemo(() => ({
     ai: {
       typing: true,
@@ -328,7 +360,7 @@ const LLMChat: React.FC = () => {
         />
       </Sider>
       <Content className="pl-2">
-        <div className="h-[calc(100%-60px)] overflow-y-auto p-4">
+        <div className="h-[calc(100%-104px)] overflow-y-auto p-4">
           {/* <Bubble.List
             autoScroll
             role={memoRole}
@@ -349,11 +381,14 @@ const LLMChat: React.FC = () => {
                   </Avatar>
                 }
                 footer={() => (
-                  <Actions items={[{
-                    key: 'retry',
-                    icon: <RedoOutlined onClick={() => retryConvastion(items[index - 1].content, msg.key as string)} />,
-                    label: 'Retry',
-                  },]} />
+                  (['success', 'error'].includes(msg?.status ?? '')) ? (
+                    <Actions
+                      items={[{
+                        key: 'retry',
+                        icon: <RedoOutlined onClick={() => retryConvastion(items[index - 1].content, msg.key as string)} />,
+                        label: 'Retry',
+                      },]} />
+                  ) : null
                 )}
                 contentRender={msg.role === 'user' ? undefined : () => (
                   <>
@@ -379,6 +414,24 @@ const LLMChat: React.FC = () => {
           onChange={v => setContent(v)}
           loading={loading}
           onSubmit={streamChat}
+          footer={() => (
+            <>
+              {/* <Sender.Switch
+              title={`深度思考`}
+              icon={<OpenAIOutlined />}
+              value={deepThink}
+              onChange={setDeepThink}
+            /> */}
+              <Dropdown
+                menu={{
+                  selectedKeys: [currentModel?.id ?? ''],
+                  items: modelList
+
+                }}>
+                <Button ghost type="primary">{currentModel?.modelName}</Button>
+              </Dropdown>
+            </>
+          )}
         />
       </Content>
     </Layout>

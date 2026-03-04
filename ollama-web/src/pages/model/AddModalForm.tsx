@@ -25,7 +25,7 @@ const AddModel: React.FC<{
           <Button type="primary" icon={<PlusOutlined />}>新建</Button>
       }
     >
-      <ProFormText hidden={!!initialValues} initialValue={initialValues?.id} name='id' />
+      <ProFormText hidden initialValue={initialValues?.id} name='id' />
       <ProFormText
         label="模型名称"
         initialValue={initialValues?.modelName}

@@ -1,4 +1,5 @@
 import { type BubbleItemType } from "@ant-design/x";
+import type { MenuProps } from "antd";
 
 export interface IMsg extends BubbleItemType {
   /** 会话ID */
@@ -12,3 +13,5 @@ export interface IMsg extends BubbleItemType {
 }
 
 export interface IConversation { title: string; id: string }
+
+export type IMenuItem = MenuProps['items']
